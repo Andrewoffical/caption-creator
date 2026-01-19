@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>AI One-Word Captions</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #0f172a;
+      color: white;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+    .container {
+      background: #020617;
+      padding: 24px;
+      border-radius: 16px;
+      width: 100%;
+      max-width: 700px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 16px;
+    }
+    input[type=file] {
+      width: 100%;
+      margin-bottom: 16px;
+    }
+    video {
+      width: 100%;
+      border-radius: 12px;
+      margin-bottom: 16px;
+    }
+    .caption {
+      text-align: center;
+      font-size: 2rem;
+      font-weight: bold;
+      margin-top: 12px;
+      color: #38bdf8;
+      min-height: 2.5rem;
+    }
+    .note {
+      font-size: 0.9rem;
+      opacity: 0.7;
+      margin-top: 12px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>AI One‑Word Captions</h1>
+
+    <input type="file" accept="video/*" id="videoUpload" />
+
+    <video id="video" controls></video>
+
+    <div class="caption" id="caption"></div>
+
+    <div class="note">
+      Demo version uses browser speech recognition.<br>
+      For production, connect OpenAI / Whisper or another AI transcription API.
+    </div>
+  </div>
+
+  <script>
+    const upload = document.getElementById('videoUpload');
+    const video = document.getElementById('video');
+    const captionDiv = document.getElementById('caption');
+
+    let words = [];
+    let wordIndex = 0;
+    let captionInterval;
+
+    upload.addEventListener('change', () => {
+      const file = upload.files[0];
+      if (!file) return;
+      video.src = URL.createObjectURL(file);
+      captionDiv.textContent = '';
+      words = [];
+      wordIndex = 0;
+
+      transcribeAudio();
+    });
+
+    function transcribeAudio() {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        captionDiv.textContent = 'Speech recognition not supported.';
+        return;
+      }
+
+      const recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = false;
+      recognition.lang = 'en-US';
+
+      recognition.onresult = (event) => {
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const transcript = event.results[i][0].transcript;
+          words.push(...transcript.split(' '));
+        }
+      };
+
+      recognition.start();
+
+      video.onplay = () => {
+        recognition.start();
+        startCaptions();
+      };
+
+      video.onpause = () => clearInterval(captionInterval);
+      video.onended = () => clearInterval(captionInterval);
+    }
+
+    function startCaptions() {
+      clearInterval(captionInterval);
+      captionInterval = setInterval(() => {
+        if (wordIndex < words.length) {
+          captionDiv.textContent = words[wordIndex];
+          wordIndex++;
+        }
+      }, 400); // speed of word display
+    }
+  </script>
+</body>
+</html>
